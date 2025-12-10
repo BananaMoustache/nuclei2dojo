@@ -57,11 +57,11 @@ def build_parser() -> argparse.ArgumentParser:
     )
     p.add_argument(
         "--profile",
-        choices=["default", "webanalyze"],
+        choices=["default", "httpx"],
         default="default",
         help=(
             "Scan mode: 'default' = nuclei without tech profiling; "
-            "'webanalyze' = tech-profiled scan using webanalyze + nuclei tags."
+            "'httpx' = tech-profiled scan using httpx -tech-detect → nuclei tags."
         ),
     )
     return p

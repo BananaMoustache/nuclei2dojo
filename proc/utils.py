@@ -159,3 +159,67 @@ def split_by_host_to_json_arrays(
         )
 
     return host_files
+
+def sanitize_nuclei_file(path: str) -> None:
+    try:
+        recs = list(iter_nuclei_records(path))
+    except Exception as e:
+        print(f"[WRN] sanitize_nuclei_file: cannot iterate {path}: {e}")
+        return
+
+    if not recs:
+        try:
+            with open(path, "w", encoding="utf-8") as f:
+                json.dump([], f, ensure_ascii=False)
+        except Exception:
+            pass
+        return
+
+    cleaned = []
+    dropped = 0
+
+    for i, it in enumerate(recs):
+        if not isinstance(it, dict):
+            dropped += 1
+            continue
+
+        url = it.get("matched-at") or it.get("url") or it.get("host")
+        if not url:
+            dropped += 1
+            continue
+            
+        host = canonical_host_from_any(url)
+        if not host or host == "unknown":
+            dropped += 1
+            continue
+
+        tmpl = it.get("template-id") or it.get("template") or it.get("id")
+        typ = it.get("type")
+        matcher = it.get("matcher-name") or it.get("matcher")
+
+        if not tmpl:
+            tmpl = f"nuclei-unknown-template-{i}"
+        if not typ:
+            typ = "http"
+        if not matcher:
+            matcher = "default"
+
+        it["matched-at"] = str(url)
+        it["host"] = str(host)
+        it["template-id"] = str(tmpl)
+        it["type"] = str(typ)
+        it["matcher-name"] = str(matcher)
+
+        cleaned.append(it)
+
+    if dropped:
+        print(
+            f"[WRN] sanitize_nuclei_file: dropped {dropped} records yang tidak kompatibel dengan parser Dojo"
+        )
+
+    try:
+        with open(path, "w", encoding="utf-8") as f:
+            json.dump(cleaned, f, ensure_ascii=False)
+    except Exception as e:
+        print(f"[WRN] sanitize_nuclei_file: failed writing cleaned JSON: {e}")
+
