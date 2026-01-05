@@ -1,14 +1,10 @@
 import os
 from typing import Any, List, Optional, Union, Tuple
+
 import requests
 
-from .config import (
-    HEADERS_AUTH,
-    PROD_TYPE_NAME,
-    PROD_TYPE_ID_ENV,
-    ALLOW_BASE_DOMAIN_FALLBACK,
-)
-from .utils import utc_today
+from .config import HEADERS_AUTH, PROD_TYPE_NAME, PROD_TYPE_ID_ENV, ALLOW_BASE_DOMAIN_FALLBACK
+from .utils import utc_today, log_warn
 
 
 def _json_or_none(r: requests.Response) -> Any:
@@ -30,16 +26,22 @@ def _results(data: Any) -> List[Any]:
 def _paged_get(dd_url: str, token: str, path: str, params: dict | None = None) -> list:
     url = f"{dd_url}{path if path.startswith('/') else '/' + path}"
     items, offset, limit = [], 0, 200
+
     while True:
         query = dict(params or {})
         query.update({"limit": limit, "offset": offset})
+
         r = requests.get(url, headers=HEADERS_AUTH(token), params=query, timeout=30)
         r.raise_for_status()
+
         data = _json_or_none(r) or {}
         items.extend(_results(data))
+
         if not data.get("next"):
             break
+
         offset += limit
+
     return items
 
 
@@ -60,6 +62,7 @@ def choose_product_type(dd_url: str, token: str) -> Tuple[Optional[int], Optiona
             pass
 
     pts = get_product_types(dd_url, token)
+
     if PROD_TYPE_NAME:
         for pt in pts:
             name = (pt.get("name") or "").strip()
@@ -98,12 +101,14 @@ def match_product_for_host(dd_url: str, token: str, host: str) -> Optional[str]:
 
     candidates = get_products(dd_url, token, q=h)
     strict = []
+
     for p in candidates:
         pname = p.get("name") or ""
         low = pname.lower()
         in_paren = _inside_paren_lower(pname)
         if h in low or in_paren == h:
             strict.append(p)
+
     if strict:
         strict.sort(key=lambda x: len((x.get("name") or "")))
         return strict[0].get("name")
@@ -116,11 +121,14 @@ def match_product_for_host(dd_url: str, token: str, host: str) -> Optional[str]:
         more = get_products(dd_url, token, q=base)
         sub = h.split(".")[0]
         good = []
+
         for p in more:
-            low = (p.get("name") or "").lower()
-            in_paren = _inside_paren_lower(p.get("name") or "")
+            pname = p.get("name") or ""
+            low = pname.lower()
+            in_paren = _inside_paren_lower(pname)
             if base in low and (sub in low or in_paren == h):
                 good.append(p)
+
         if good:
             good.sort(key=lambda x: len((x.get("name") or "")))
             return good[0].get("name")
@@ -154,48 +162,38 @@ def _with_product_type(dd_url: str, token: str, form: dict) -> dict:
     return form
 
 
-def _reimport(
-    dd_url: str, token: str, file_path: str, product_name: str, engagement_name: str
-) -> dict:
+def _reimport(dd_url: str, token: str, file_path: str, product_name: str, engagement_name: str) -> dict:
     url = f"{dd_url}/reimport-scan/"
-    data = _with_product_type(
-        dd_url, token, _common_form(product_name, engagement_name, no_reactivate=True)
-    )
+    data = _with_product_type(dd_url, token, _common_form(product_name, engagement_name, no_reactivate=True))
+
     with open(file_path, "rb") as fh:
         files = {"file": (os.path.basename(file_path), fh, "application/json")}
-        r = requests.post(
-            url, headers=HEADERS_AUTH(token), files=files, data=data, timeout=180
-        )
-    r.raise_for_status()
+        r = requests.post(url, headers=HEADERS_AUTH(token), files=files, data=data, timeout=180)
+        r.raise_for_status()
+
     return _json_or_none(r) or {}
 
 
-def _import(
-    dd_url: str, token: str, file_path: str, product_name: str, engagement_name: str
-) -> dict:
+def _import(dd_url: str, token: str, file_path: str, product_name: str, engagement_name: str) -> dict:
     url = f"{dd_url}/import-scan/"
-    data = _with_product_type(
-        dd_url, token, _common_form(product_name, engagement_name, no_reactivate=False)
-    )
+    data = _with_product_type(dd_url, token, _common_form(product_name, engagement_name, no_reactivate=False))
+
     with open(file_path, "rb") as fh:
         files = {"file": (os.path.basename(file_path), fh, "application/json")}
-        r = requests.post(
-            url, headers=HEADERS_AUTH(token), files=files, data=data, timeout=180
-        )
-    r.raise_for_status()
+        r = requests.post(url, headers=HEADERS_AUTH(token), files=files, data=data, timeout=180)
+        r.raise_for_status()
+
     return _json_or_none(r) or {}
 
 
-def import_scan_smart(
-    dd_url: str, token: str, file_path: str, product_name: str, engagement_name: str
-) -> Tuple[str, dict]:
+def import_scan_smart(dd_url: str, token: str, file_path: str, product_name: str, engagement_name: str) -> Tuple[str, dict]:
     try:
         res = _reimport(dd_url, token, file_path, product_name, engagement_name)
         return "reimport", res
     except requests.HTTPError as e:
         code = e.response.status_code if e.response is not None else None
         txt = e.response.text[:500] if e.response is not None else str(e)
-        print(f"[WRN] reimport-scan failed ({code}): {txt}")
+        log_warn(f"reimport-scan failed ({code}): {txt}")
         res = _import(dd_url, token, file_path, product_name, engagement_name)
         return "import", res
 
@@ -203,21 +201,17 @@ def import_scan_smart(
 def count_from_api(api_response: Union[dict, list, None]) -> Optional[int]:
     if not isinstance(api_response, dict):
         return None
-    for key in (
-        "findings_count",
-        "results_count",
-        "count",
-        "imported_findings",
-        "created",
-        "success",
-    ):
+
+    for key in ("findings_count", "results_count", "count", "imported_findings", "created", "success"):
         val = api_response.get(key)
         if isinstance(val, int) and val >= 0:
             return val
+
     for k in ("result", "results"):
         nested = api_response.get(k)
         if isinstance(nested, dict):
             inner = count_from_api(nested)
             if isinstance(inner, int):
                 return inner
+
     return None
