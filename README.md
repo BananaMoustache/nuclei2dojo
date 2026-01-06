@@ -229,32 +229,59 @@ python3 main.py --help
 Scan a list of targets from a text file:
 
 ```bash
-python3 main.py \   --mode list \ --targets list.txt \ --profile httpx \ --severity "low,medium,high,critical"  \ --rate-limit 120  \ --concurrency 80  \ --save-json
+python3 main.py \   
+--mode list \ 
+--targets list.txt \ 
+--profile httpx \ 
+--severity "low,medium,high,critical" \ 
+--rate-limit 120 \ 
+--concurrency 80 \ 
+--save-json
 ```
 
 
 Same as above but with custom headers (repeatable):
 
 ```bash 
-python3 main.py \   --mode list \ --targets list.txt \ --profile httpx \ -H "Authorization: Bearer XXX"  \ -H "Cookie: session=abcd"  \ --save-json
+python3 main.py \   
+--mode list \ 
+--targets list.txt \ 
+--profile httpx \ 
+-H "Authorization: Bearer XXX"  \ 
+-H "Cookie: session=abcd"  \ 
+--save-json
 ```
 
 Template mode (scan only one template):
 
 ```bash
-python3 main.py \   --mode list \ --targets list.txt \ --cve-template http/cves/2025/CVE-2025-55182.yaml \ --save-json
+python3 main.py \   
+--mode list \ 
+--targets list.txt \ 
+--cve-template http/cves/2025/CVE-2025-55182.yaml \ 
+--save-json
 ```
 
 Template mode + tech filter (only scan matching hosts):
 
 ```bash
-python3 main.py \   --mode list \ --targets list.txt \ --cve-template http/cves/2025/CVE-2025-55182.yaml \ --cve-tech-filter "wordpress,php"  \ --save-json
+python3 main.py \   
+--mode list \ 
+--targets list.txt \ 
+--cve-template http/cves/2025/CVE-2025-55182.yaml \ 
+--cve-tech-filter "wordpress,php"  \ 
+--save-json
 ```
 
 Template mode + auto filter from template tags:
 
 ```bash
-python3 main.py \   --mode list \ --targets list.txt \ --cve-template http/cves/2025/CVE-2025-55182.yaml \ --cve-auto-filter \ --save-json
+python3 main.py \ 
+--mode list \ 
+--targets list.txt \ 
+--cve-template http/cves/2025/CVE-2025-55182.yaml \ 
+--cve-auto-filter \ 
+--save-json
 ```
 
 
@@ -269,13 +296,9 @@ python3 main.py \   --mode list \ --targets list.txt \ --cve-template http/cves/
     -   Nuclei is called once with: 
         
         -   `-list list.txt` 
-            
         -   `-H "<header>"` (for each `-H/--header` you provide) 
-            
         -   `-tags <aggregated_tags>` 
-            
-        -   `-exclude-tags fuzz,dos,bruteforce,network` 
-            
+        -   `-exclude-tags fuzz,dos,bruteforce,network`     
         -   `-exclude-templates "http/fuzzing/,network/,dns/"`. 
             
 
@@ -286,13 +309,24 @@ Results are split per host and uploaded into DefectDojo, with products matched/c
 Scan a single URL/host:
 
 ```bash
-python3 main.py \   --mode single \ --target https://testphp.vulnweb.com \ --profile httpx \ --severity "medium,high,critical"  \ --rate-limit 80  \ --concurrency 50
+python3 main.py \   
+--mode single \ 
+--target https://testphp.vulnweb.com \ 
+--profile httpx \ 
+--severity "medium,high,critical"  \ 
+--rate-limit 80  \ 
+--concurrency 50
 ``` 
 
 Single target with custom headers:
 
 ```bash
-python3 main.py \   --mode single \ --target https://example.com \ --profile httpx \ -H "Authorization: Bearer XXX"  \ -H "X-Forwarded-For: 127.0.0.1"
+python3 main.py \  
+--mode single \ 
+--target https://example.com \ 
+--profile httpx \
+-H "Authorization: Bearer XXX"  \
+-H "X-Forwarded-For: 127.0.0.1"
 ``` 
 -   A temporary hosts file is created with your target. 
 -   If `--profile httpx` is used: 
