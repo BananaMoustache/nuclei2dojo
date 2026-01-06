@@ -51,7 +51,6 @@ BASE_EXCLUDE_TEMPLATES: List[str] = ["http/fuzzing/", "network/", "dns/"]
 def guess_tech_filter_from_template(template_path: str) -> List[str]:
     if not template_path:
         return []
-
     try:
         with open(template_path, "r", encoding="utf-8", errors="ignore") as f:
             lines = f.read().splitlines()
@@ -59,7 +58,6 @@ def guess_tech_filter_from_template(template_path: str) -> List[str]:
         return []
 
     tags: List[str] = []
-
     for line in lines:
         raw = line.split("#", 1)[0].rstrip()
         low = raw.strip().lower()
@@ -72,7 +70,6 @@ def guess_tech_filter_from_template(template_path: str) -> List[str]:
 
         after = after.strip().strip('"').strip("'").strip("[]")
         parts = re.split(r"[, ]+", after)
-
         for p in parts:
             p = p.strip().strip("'\"").lower()
             p = re.sub(r"[^a-z0-9._-]+", "", p)
@@ -96,7 +93,6 @@ def guess_tech_filter_from_template(template_path: str) -> List[str]:
         "fingerprint",
         "takeover",
     }
-
     return [t for t in tags if t not in generic]
 
 
@@ -127,6 +123,7 @@ def _upload_host_json(dd_url: str, token: str, host: str, json_path: str) -> Non
         log_info(f"No product matched. Auto-creating Product={product_name!r} (type={PROD_TYPE_NAME!r})")
 
     mode, res = import_scan_smart(dd_url, token, json_path, product_name, engagement)
+
     cnt = count_from_api(res)
     if not isinstance(cnt, int) or cnt < 0:
         cnt = count_findings_from_file(json_path) or 0
@@ -180,19 +177,16 @@ def _run_httpx(hosts_file: str) -> str:
 
 def _parse_httpx_json(json_path: str) -> Dict[str, List[str]]:
     tech_by_host: Dict[str, List[str]] = {}
-
     try:
         with open(json_path, "r", encoding="utf-8", errors="ignore") as f:
             for raw in f:
                 line = raw.strip()
                 if not line:
                     continue
-
                 try:
                     rec = json.loads(line)
                 except json.JSONDecodeError:
                     continue
-
                 if not isinstance(rec, dict):
                     continue
 
@@ -202,7 +196,6 @@ def _parse_httpx_json(json_path: str) -> Dict[str, List[str]]:
                     continue
 
                 tech_by_host.setdefault(host, [])
-
                 tech_list = rec.get("tech") or rec.get("technologies") or []
                 if not isinstance(tech_list, list):
                     continue
@@ -252,7 +245,6 @@ def _build_tags_for_technologies(techs: List[str]) -> Set[str]:
         tags.add("linux")
     if any("windows server" in t for t in low):
         tags.add("windows")
-
     if any("laravel" in t for t in low):
         tags.update({"laravel", "php"})
     if any("django" in t for t in low):
@@ -263,7 +255,6 @@ def _build_tags_for_technologies(techs: List[str]) -> Set[str]:
         tags.update({"drupal", "php"})
     if any("joomla" in t for t in low):
         tags.update({"joomla", "php"})
-
     if any("jquery" in t for t in low):
         tags.update({"jquery", "javascript", "js"})
     if any("react" in t for t in low):
@@ -279,14 +270,12 @@ def _build_tags_for_technologies(techs: List[str]) -> Set[str]:
 
     if not tags:
         tags.add("tech")
-
     return tags
 
 
 def _run_httpx_and_build_profile(hosts_file: str) -> Tuple[Dict[str, List[str]], Optional[str]]:
     json_path = _run_httpx(hosts_file)
     tech_by_host = _parse_httpx_json(json_path)
-
     _print_httpx_summary(tech_by_host)
 
     if not tech_by_host:
@@ -339,6 +328,7 @@ def run_mode_list(args: argparse.Namespace) -> None:
 
             needs_httpx = bool(required_keywords)
             tech_by_host: Dict[str, List[str]] = {}
+
             if needs_httpx:
                 tech_by_host, _ = _run_httpx_and_build_profile(args.targets)
 
@@ -380,6 +370,7 @@ def run_mode_list(args: argparse.Namespace) -> None:
                     rate_limit=args.rate_limit,
                     concurrency=args.concurrency,
                     templates=[args.cve_template],
+                    headers=args.header,
                     verbose=args.verbose,
                 )
             else:
@@ -392,9 +383,9 @@ def run_mode_list(args: argparse.Namespace) -> None:
                     rate_limit=args.rate_limit,
                     concurrency=args.concurrency,
                     templates=[args.cve_template],
+                    headers=args.header,
                     verbose=args.verbose,
                 )
-
         else:
             if args.profile == "httpx":
                 _, include_tags = _run_httpx_and_build_profile(args.targets)
@@ -408,6 +399,7 @@ def run_mode_list(args: argparse.Namespace) -> None:
                     exclude_templates=BASE_EXCLUDE_TEMPLATES,
                     rate_limit=args.rate_limit,
                     concurrency=args.concurrency,
+                    headers=args.header,
                     verbose=args.verbose,
                 )
             else:
@@ -416,6 +408,7 @@ def run_mode_list(args: argparse.Namespace) -> None:
                     severity=args.severity,
                     rate_limit=args.rate_limit,
                     concurrency=args.concurrency,
+                    headers=args.header,
                     verbose=args.verbose,
                 )
 
@@ -452,7 +445,6 @@ def run_mode_list(args: argparse.Namespace) -> None:
                         pass
 
         log_ok(f"Done. {ok}/{total} host(s) processed.")
-
     finally:
         if temp_targets_file:
             try:
@@ -463,6 +455,7 @@ def run_mode_list(args: argparse.Namespace) -> None:
 
 def run_mode_single(args: argparse.Namespace) -> None:
     dd_url, token = _ensure_auth(args)
+
     target = args.target
     if not target:
         raise SystemExit("[!] Single mode requires --target.")
@@ -497,6 +490,7 @@ def run_mode_single(args: argparse.Namespace) -> None:
                 rate_limit=args.rate_limit,
                 concurrency=args.concurrency,
                 templates=templates,
+                headers=args.header,
                 verbose=args.verbose,
             )
 
@@ -524,6 +518,7 @@ def run_mode_single(args: argparse.Namespace) -> None:
             rate_limit=args.rate_limit,
             concurrency=args.concurrency,
             templates=templates,
+            headers=args.header,
             verbose=args.verbose,
         )
 

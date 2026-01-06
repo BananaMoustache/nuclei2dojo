@@ -120,8 +120,8 @@ def match_product_for_host(dd_url: str, token: str, host: str) -> Optional[str]:
     if base and base != h:
         more = get_products(dd_url, token, q=base)
         sub = h.split(".")[0]
-        good = []
 
+        good = []
         for p in more:
             pname = p.get("name") or ""
             low = pname.lower()
@@ -170,8 +170,7 @@ def _reimport(dd_url: str, token: str, file_path: str, product_name: str, engage
         files = {"file": (os.path.basename(file_path), fh, "application/json")}
         r = requests.post(url, headers=HEADERS_AUTH(token), files=files, data=data, timeout=180)
         r.raise_for_status()
-
-    return _json_or_none(r) or {}
+        return _json_or_none(r) or {}
 
 
 def _import(dd_url: str, token: str, file_path: str, product_name: str, engagement_name: str) -> dict:
@@ -182,8 +181,7 @@ def _import(dd_url: str, token: str, file_path: str, product_name: str, engageme
         files = {"file": (os.path.basename(file_path), fh, "application/json")}
         r = requests.post(url, headers=HEADERS_AUTH(token), files=files, data=data, timeout=180)
         r.raise_for_status()
-
-    return _json_or_none(r) or {}
+        return _json_or_none(r) or {}
 
 
 def import_scan_smart(dd_url: str, token: str, file_path: str, product_name: str, engagement_name: str) -> Tuple[str, dict]:

@@ -21,6 +21,20 @@ def _join_exclude_templates(exclude_templates: Optional[List[str]]) -> Optional[
     return ",".join(cleaned)
 
 
+def _clean_headers(headers: Optional[List[str]]) -> List[str]:
+    if not headers:
+        return []
+    out: List[str] = []
+    for h in headers:
+        if h is None:
+            continue
+        hs = str(h).strip()
+        if not hs:
+            continue
+        out.append(hs)
+    return out
+
+
 def nuclei_single(
     url: str,
     json_export_path: Optional[str] = None,
@@ -32,6 +46,7 @@ def nuclei_single(
     rate_limit: Optional[int] = None,
     concurrency: Optional[int] = None,
     templates: Optional[List[str]] = None,
+    headers: Optional[List[str]] = None,
     verbose: bool = False,
 ) -> str:
     ensure_nuclei()
@@ -43,10 +58,16 @@ def nuclei_single(
 
     if verbose:
         cmd.insert(1, "-v")
+
+    for h in _clean_headers(headers):
+        cmd += ["-H", h]
+
     if severity:
         cmd += ["-severity", severity]
+
     if include_tags:
         cmd += ["-tags", include_tags]
+
     if exclude_tags:
         cmd += ["-exclude-tags", exclude_tags]
 
@@ -56,6 +77,7 @@ def nuclei_single(
 
     if rate_limit:
         cmd += ["-rl", str(rate_limit)]
+
     if concurrency:
         cmd += ["-c", str(concurrency)]
 
@@ -79,6 +101,7 @@ def nuclei_list(
     rate_limit: Optional[int] = None,
     concurrency: Optional[int] = None,
     templates: Optional[List[str]] = None,
+    headers: Optional[List[str]] = None,
     verbose: bool = False,
 ) -> str:
     ensure_nuclei()
@@ -90,10 +113,16 @@ def nuclei_list(
 
     if verbose:
         cmd.insert(1, "-v")
+
+    for h in _clean_headers(headers):
+        cmd += ["-H", h]
+
     if severity:
         cmd += ["-severity", severity]
+
     if include_tags:
         cmd += ["-tags", include_tags]
+
     if exclude_tags:
         cmd += ["-exclude-tags", exclude_tags]
 
@@ -103,6 +132,7 @@ def nuclei_list(
 
     if rate_limit:
         cmd += ["-rl", str(rate_limit)]
+
     if concurrency:
         cmd += ["-c", str(concurrency)]
 

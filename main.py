@@ -15,6 +15,7 @@ def main() -> None:
             if not args.target:
                 raise SystemExit("[!] Mode 'single' requires --target.")
             run_mode_single(args)
+
     except KeyboardInterrupt:
         raise SystemExit("\n[!] Aborted by user (Ctrl+C).")
     except SystemExit:

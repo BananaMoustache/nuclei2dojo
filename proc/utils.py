@@ -70,7 +70,6 @@ def utc_today() -> str:
 
 def slugify(text: str) -> str:
     import re as _re
-
     text = (text or "").strip().lower()
     text = _re.sub(r"[^a-z0-9\-_.]+", "-", text)
     text = _re.sub(r"-{2,}", "-", text).strip("-")
@@ -81,7 +80,6 @@ def _strip_port_from_netloc(netloc: str) -> str:
     if not netloc:
         return ""
     import re as _re
-
     m = _re.match(r"^\[(?P<h>.+)\](?::\d+)?$", netloc)
     if m:
         return m.group("h")
@@ -145,6 +143,7 @@ def count_findings_from_file(json_path: str) -> int:
     try:
         with open(json_path, "r", encoding="utf-8", errors="ignore") as f:
             data = f.read().strip()
+
         if not data:
             return 0
 
